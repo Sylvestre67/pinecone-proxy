@@ -40,3 +40,4 @@ db.sqlite3
 *.bak
 .DS_Store
 Thumbs.db
+fly.toml

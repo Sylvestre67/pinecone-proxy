@@ -3,15 +3,42 @@ import os
 import pinecone
 
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.encoders import jsonable_encoder
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-
-app = FastAPI()
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from typing import List, Dict
 
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 JWT_EXPIRATION_TIME_MINUTES = 30
+ORIGINS = ['https://observablehq.static.observableusercontent.com']
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT")
+PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 security = HTTPBearer()
+
+
+class PineconeQuery(BaseModel):
+    namespace: str | None = None
+    top_k: int = 10,
+    include_values: bool = False,
+    include_metadata: bool = False,
+    vector: List[float] = [0.1, 0.2, 0.3, 0.4]
+    sparse_vector: Dict[str, List[float]] | None = None
+    filter: Dict[str, Dict[str, List[str]]] | None = None
 
 
 @app.get("/_status")
@@ -21,7 +48,8 @@ def read_root():
 
 # AUTH ROUTES
 @app.post("/query")
-async def protected_endpoint(credentials: HTTPAuthorizationCredentials = Depends(security), query: str = None):
+async def protected_endpoint(credentials: HTTPAuthorizationCredentials = Depends(security),
+                             pinecone_query: PineconeQuery = None):
     try:
         payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         username = payload.get("username")
@@ -30,22 +58,18 @@ async def protected_endpoint(credentials: HTTPAuthorizationCredentials = Depends
     except jwt.DecodeError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    pinecone.init(api_key="YOUR_API_KEY", environment="YOUR_ENVIRONMENT")
-    index = pinecone.Index("example-index")
+    try:
+        pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
+        index = pinecone.Index(PINECONE_INDEX_NAME)
 
-    query_response = index.query(
-        namespace="example-namespace",
-        top_k=10,
-        include_values=True,
-        include_metadata=True,
-        vector=[0.1, 0.2, 0.3, 0.4],
-        sparse_vector={
-            'indices': [10, 45, 16],
-            'values': [0.5, 0.5, 0.2]
-        },
-        filter={
-            "genre": {"$in": ["comedy", "documentary", "drama"]}
-        }
-    )
+        query_response = index.query(
+            vector=pinecone_query.vector,
+            top_k=10
+        )
 
-    return {"message": f"Protected endpoint accessed successfully by {username}"}
+        return [
+            {"id": obj.id, "score": obj.score, "values": obj.values}
+            for obj in query_response.matches
+        ]
+    except pinecone.exceptions.PineconeException as e:
+        raise HTTPException(status_code=500, detail="System error")
