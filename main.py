@@ -13,7 +13,7 @@ from typing import List, Dict
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 JWT_EXPIRATION_TIME_MINUTES = 30
-ORIGINS = ['https://observablehq.static.observableusercontent.com']
+ORIGINS = ['*']
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT")
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
