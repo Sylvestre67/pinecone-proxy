@@ -1,0 +1,44 @@
+# flyctl launch added from .gitignore
+# Compiled Python files
+**/*.pyc
+**/__pycache__
+
+# Virtual environment
+**/venv
+**/env
+
+# Dependencies
+.venv
+.env
+.mypy_cache
+.pytest_cache
+dist
+build
+.tox
+.eggs
+**/*.egg-info
+**/*.egg
+**/*.whl
+
+# Development files
+**/.idea
+**/.vscode
+**/*.pydevproject
+
+# Log files
+**/*.log
+
+# Configuration files
+**/.env
+
+# Database files
+**/db.sqlite3
+
+# Editor-specific files
+**/*~
+**/*.swp
+**/*.swo
+**/*.bak
+**/.DS_Store
+**/Thumbs.db
+fly.toml
