@@ -33,10 +33,10 @@ security = HTTPBearer()
 
 class PineconeQuery(BaseModel):
     namespace: str | None = None
-    top_k: int = 10,
-    include_values: bool = False,
-    include_metadata: bool = False,
-    vector: List[float] = [0.1, 0.2, 0.3, 0.4]
+    top_k: int = 10
+    include_values: bool = False
+    include_metadata: bool = False
+    vector: List[float] | None = None
     sparse_vector: Dict[str, List[float]] | None = None
     filter: Dict[str, Dict[str, List[str]]] | None = None
 
@@ -63,8 +63,7 @@ async def protected_endpoint(credentials: HTTPAuthorizationCredentials = Depends
         index = pinecone.Index(PINECONE_INDEX_NAME)
 
         query_response = index.query(
-            vector=pinecone_query.vector,
-            top_k=10
+            **pinecone_query.dict()
         )
 
         return [
